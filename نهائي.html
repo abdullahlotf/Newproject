@@ -1,0 +1,816 @@
+<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة الحسابات</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --light-color: #ecf0f1;
+      --success-color: #27ae60;
+      --warning-color: #f39c12;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f5f7fa; margin: 0; color: #333; direction: rtl; }
+    header { background: var(--primary-color); color: #fff; padding: 15px; }
+    .header-content { display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-weight: bold; font-size: 1.2rem; }
+    .container { width: 90%; max-width: 1100px; margin: 20px auto; }
+    .btn { padding: 8px 14px; border: 0; border-radius: 6px; cursor: pointer; background: var(--secondary-color); color: #fff; margin: 4px; }
+    .btn-danger { background: var(--accent-color); }
+    .btn-success { background: var(--success-color); }
+    .btn-warning { background: var(--warning-color); }
+    .btn-info { background: var(--primary-color); }
+    .card { background: #fff; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,.1); margin-bottom: 20px; overflow: hidden; }
+    .card-header { background: var(--light-color); padding: 12px; font-weight: bold; }
+    .card-body { padding: 14px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: right; }
+    th { background: var(--light-color); }
+    .hidden { display: none; }
+    .stats { display: flex; flex-wrap: wrap; gap: 12px; }
+    .stat-item { flex: 1; min-width: 150px; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); text-align: center; }
+    .edit-input { width: 80px; padding: 4px; margin: 2px; }
+    .edit-mode { background-color: #fffacd; }
+    .main-menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .menu-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 2px solid transparent; }
+    .menu-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); border-color: var(--secondary-color); }
+    .menu-btn i { font-size: 2rem; margin-bottom: 10px; }
+    .backup-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0; }
+    .backup-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content container">
+      <div class="logo">💼 نظام إدارة الحسابات</div>
+      <div>م/ عبدالله لطف الديلمي</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginScreen" class="card">
+      <div class="card-header">تسجيل الدخول</div>
+      <div class="card-body">
+        <input type="password" id="loginPassword" placeholder="أدخل كلمة المرور" />
+        <button class="btn btn-success" onclick="checkPassword()">🔓 دخول</button>
+      </div>
+    </div>
+
+    <!-- لوحة التحكم -->
+    <div id="dashboard" class="hidden">
+      <!-- القائمة الرئيسية - أصبحت أول محتوى -->
+      <div class="card">
+        <div class="card-header">القائمة الرئيسية</div>
+        <div class="card-body">
+          <div class="main-menu">
+            <div class="menu-btn" onclick="showSection('stats')">
+              <div>📊</div>
+              <span>الإحصائيات البيانية</span>
+            </div>
+            <div class="menu-btn" onclick="showSection('summary')">
+              <div>📈</div>
+              <span>ملخص الحسابات</span>
+            </div>
+            <div class="menu-btn" onclick="showSection('add')">
+              <div>➕</div>
+              <span>إضافة حساب</span>
+            </div>
+            <div class="menu-btn" onclick="showSection('view')">
+              <div>👁️</div>
+              <span>عرض حساب</span>
+            </div>
+            <div class="menu-btn" onclick="showSection('delete')">
+              <div>🗑️</div>
+              <span>حذف حساب</span>
+            </div>
+            <div class="menu-btn" onclick="showSection('list')">
+              <div>📋</div>
+              <span>جميع الحسابات</span>
+            </div>
+            <div class="menu-btn" onclick="showSection('backup')">
+              <div>🛡️</div>
+              <span>النسخ الاحتياطي</span>
+            </div>
+            <div class="menu-btn" onclick="showSection('password')">
+              <div>🔐</div>
+              <span>تغيير كلمة المرور</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- الإحصائيات البيانية -->
+      <div id="statsSection" class="card hidden">
+        <div class="card-header">📊 الإحصائيات البيانية</div>
+        <div class="card-body">
+          <canvas id="accountsChart" style="max-width:800px; height: 400px;"></canvas>
+          <div class="stats" id="statsContainer"></div>
+        </div>
+      </div>
+
+      <!-- ملخص الحسابات -->
+      <div id="summarySection" class="card hidden">
+        <div class="card-header">📈 ملخص الحسابات</div>
+        <div class="card-body">
+          <table id="summaryTable">
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>إجمالي القيم</th>
+                <th>مجموع السحب</th>
+                <th>المتبقي</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- النسخ الاحتياطي -->
+      <div id="backupSection" class="card hidden">
+        <div class="card-header">🛡️ النسخ الاحتياطي والاستعادة</div>
+        <div class="card-body">
+          <div class="backup-section">
+            <h4>💾 حفظ البيانات</h4>
+            <div class="backup-buttons">
+              <button class="btn btn-success" onclick="backupData()">نسخ احتياطي (JSON)</button>
+              <button class="btn btn-success" onclick="exportToCSV()">تصدير إلى CSV</button>
+              <button class="btn btn-success" onclick="exportToExcelAll()">تصدير إلى Excel</button>
+            </div>
+          </div>
+          
+          <div class="backup-section">
+            <h4>📥 استعادة البيانات</h4>
+            <div class="backup-buttons">
+              <button class="btn btn-warning" onclick="document.getElementById('restoreFile').click()">
+                استعادة من JSON
+              </button>
+              <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(event)">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- الصفحات المستقلة -->
+
+    <!-- إضافة حساب -->
+    <div id="addForm" class="card hidden">
+      <div class="card-header">➕ إضافة حساب جديد</div>
+      <div class="card-body">
+        <input id="addName" placeholder="ادخل الاسم" /><br />
+        <input id="addQuantity" type="number" placeholder="الكمية" /><br />
+        <input id="addValue" type="number" placeholder="القيمة" /><br />
+        <input id="addWithdraw" type="number" placeholder="السحب" /><br />
+        <input id="addInform" placeholder="التفاصيل" /><br />
+        <button class="btn btn-success" onclick="saveAccount()">💾 حفظ</button>
+        <button class="btn" onclick="showMainMenu()">⬅️ رجوع للقائمة</button>
+      </div>
+    </div>
+
+    <!-- عرض الحساب -->
+    <div id="viewForm" class="card hidden">
+      <div class="card-header">👁️ عرض حساب</div>
+      <div class="card-body">
+        <input id="viewName" placeholder="ادخل الاسم" />
+        <button class="btn" onclick="viewAccount()">📂 عرض</button>
+        <button class="btn" onclick="exportToExcel()">📤 تصدير إلى Excel</button>
+        <button class="btn btn-warning" onclick="toggleEditMode()">✏️ وضع التعديل</button>
+        <div id="viewResult"></div>
+        <button class="btn" onclick="showMainMenu()">⬅️ رجوع للقائمة</button>
+      </div>
+    </div>
+
+    <!-- حذف حساب -->
+    <div id="deleteForm" class="card hidden">
+      <div class="card-header">🗑️ حذف حساب</div>
+      <div class="card-body">
+        <input id="deleteName" placeholder="ادخل الاسم" />
+        <button class="btn btn-danger" onclick="deleteAccount()">❌ حذف</button>
+        <div id="deleteResult"></div>
+        <button class="btn" onclick="showMainMenu()">⬅️ رجوع للقائمة</button>
+      </div>
+    </div>
+
+    <!-- قائمة الحسابات -->
+    <div id="accountsListForm" class="card hidden">
+      <div class="card-header">📋 جميع الحسابات</div>
+      <div class="card-body" id="accountsList"></div>
+      <button class="btn" onclick="showMainMenu()">⬅️ رجوع للقائمة</button>
+    </div>
+
+    <!-- تغيير كلمة المرور -->
+    <div id="changePasswordForm" class="card hidden">
+      <div class="card-header">🔐 تغيير كلمة المرور</div>
+      <div class="card-body">
+        <input type="password" id="oldPassword" placeholder="كلمة المرور الحالية"><br />
+        <input type="password" id="newPassword" placeholder="كلمة المرور الجديدة"><br />
+        <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور الجديدة"><br />
+        <button class="btn btn-success" onclick="changePassword()">✔️ تغيير</button>
+        <div id="passwordChangeResult"></div>
+        <button class="btn" onclick="showMainMenu()">⬅️ رجوع للقائمة</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    if (!localStorage.getItem("accountPassword")) {
+      localStorage.setItem("accountPassword", "132456");
+    }
+
+    let chartInstance = null;
+    let isEditMode = false;
+    let currentAccountName = '';
+
+    function checkPassword() {
+      const entered = document.getElementById("loginPassword").value;
+      const saved = localStorage.getItem("accountPassword");
+      if (entered === saved) {
+        document.getElementById("loginScreen").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        showMainMenu();
+      } else { 
+        alert("❌ كلمة المرور غير صحيحة"); 
+      }
+    }
+
+    function showMainMenu() {
+      hideAllSections();
+      hideAllForms();
+      document.getElementById("dashboard").classList.remove("hidden");
+      renderStats();
+    }
+
+    function showSection(sectionId) {
+      hideAllSections();
+      hideAllForms();
+      
+      switch(sectionId) {
+        case 'stats':
+          document.getElementById("statsSection").classList.remove("hidden");
+          renderStats();
+          break;
+        case 'summary':
+          document.getElementById("summarySection").classList.remove("hidden");
+          renderSummaryTable();
+          break;
+        case 'add':
+          document.getElementById("addForm").classList.remove("hidden");
+          break;
+        case 'view':
+          document.getElementById("viewForm").classList.remove("hidden");
+          isEditMode = false;
+          document.querySelector('#viewForm .btn-warning').textContent = '✏️ وضع التعديل';
+          document.querySelector('#viewForm .btn-warning').classList.add('btn-warning');
+          document.querySelector('#viewForm .btn-warning').classList.remove('btn-success');
+          break;
+        case 'delete':
+          document.getElementById("deleteForm").classList.remove("hidden");
+          break;
+        case 'list':
+          document.getElementById("accountsListForm").classList.remove("hidden");
+          listAccounts();
+          break;
+        case 'backup':
+          document.getElementById("backupSection").classList.remove("hidden");
+          break;
+        case 'password':
+          document.getElementById("changePasswordForm").classList.remove("hidden");
+          break;
+      }
+    }
+
+    function hideAllSections() {
+      const sections = [
+        "statsSection",
+        "summarySection",
+        "backupSection"
+      ];
+      sections.forEach(sid => {
+        document.getElementById(sid).classList.add("hidden");
+      });
+    }
+
+    function hideAllForms() {
+      const forms = [
+        "addForm",
+        "viewForm",
+        "deleteForm",
+        "accountsListForm",
+        "changePasswordForm"
+      ];
+      forms.forEach(fid => {
+        document.getElementById(fid).classList.add("hidden");
+      });
+    }
+
+    function saveAccount() {
+      const name = document.getElementById('addName').value.trim();
+      const quantity = Number(document.getElementById('addQuantity').value);
+      const value = Number(document.getElementById('addValue').value);
+      const withdraw = Number(document.getElementById('addWithdraw').value);
+      const inform = document.getElementById('addInform').value;
+      const date = new Date().toLocaleDateString('ar-EG');
+      const total = quantity * value;
+      
+      if (!name || isNaN(quantity) || isNaN(value) || isNaN(withdraw)) { 
+        alert("يرجى ملء جميع الحقول"); 
+        return; 
+      }
+      
+      const record = { quantity, value, withdraw, total, date, inform };
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      if (!data[name]) data[name] = [];
+      data[name].push(record);
+      localStorage.setItem("accounts", JSON.stringify(data));
+      
+      // نسخ احتياطي تلقائي
+      autoBackup();
+      
+      alert("✅ تم حفظ البيانات");
+      document.getElementById('addName').value = '';
+      document.getElementById('addQuantity').value = '';
+      document.getElementById('addValue').value = '';
+      document.getElementById('addWithdraw').value = '';
+      document.getElementById('addInform').value = '';
+    }
+
+    function viewAccount() {
+      const name = document.getElementById('viewName').value.trim();
+      currentAccountName = name;
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      const container = document.getElementById("viewResult");
+      if (!data[name]) { 
+        container.innerHTML = "<p style='color:red;'>❌ لا توجد بيانات</p>"; 
+        return; 
+      }
+      
+      if (isEditMode) {
+        renderEditableAccount(data[name], container, name);
+      } else {
+        renderReadOnlyAccount(data[name], container, name);
+      }
+    }
+
+    function renderReadOnlyAccount(records, container, name) {
+      let rows = "", sumTotal = 0, sumWithdraw = 0;
+      records.forEach((r, index) => { 
+        rows += `<tr>
+          <td>${r.quantity}</td>
+          <td>${r.value}</td>
+          <td>${r.withdraw}</td>
+          <td>${r.total}</td>
+          <td>${r.date}</td>
+          <td>${r.inform}</td>
+        </tr>`; 
+        sumTotal += r.total; 
+        sumWithdraw += r.withdraw; 
+      });
+      
+      const remaining = sumTotal - sumWithdraw;
+      container.innerHTML = `
+        <table id="accountTable">
+          <tr>
+            <th>الكمية</th>
+            <th>القيمة</th>
+            <th>السحب</th>
+            <th>الإجمالي</th>
+            <th>التاريخ</th>
+            <th>التفاصيل</th>
+          </tr>
+          ${rows}
+          <tr style='font-weight:bold;background:#ffd'>
+            <td colspan=3>الإجمالي الكلي:</td>
+            <td>${sumTotal}</td>
+            <td colspan=2></td>
+          </tr>
+          <tr style='font-weight:bold;background:#fdd'>
+            <td colspan=3>مجموع السحب:</td>
+            <td>${sumWithdraw}</td>
+            <td colspan=2></td>
+          </tr>
+          <tr style='font-weight:bold;background:#dfd'>
+            <td colspan=3>المتبقي:</td>
+            <td>${remaining}</td>
+            <td colspan=2></td>
+          </tr>
+        </table>`;
+    }
+
+    function renderEditableAccount(records, container, name) {
+      let rows = "", sumTotal = 0, sumWithdraw = 0;
+      
+      records.forEach((r, index) => { 
+        rows += `<tr class="edit-mode">
+          <td><input type="number" class="edit-input" value="${r.quantity}" id="editQty${index}"></td>
+          <td><input type="number" class="edit-input" value="${r.value}" id="editVal${index}"></td>
+          <td><input type="number" class="edit-input" value="${r.withdraw}" id="editWithdraw${index}"></td>
+          <td><span id="editTotal${index}">${r.quantity * r.value}</span></td>
+          <td>${r.date}</td>
+          <td><input type="text" class="edit-input" value="${r.inform}" id="editInform${index}"></td>
+          <td>
+            <button class="btn btn-success" onclick="updateRecord(${index})">💾</button>
+            <button class="btn btn-danger" onclick="deleteRecord(${index})">🗑️</button>
+          </td>
+        </tr>`; 
+        sumTotal += r.quantity * r.value; 
+        sumWithdraw += r.withdraw; 
+      });
+      
+      const remaining = sumTotal - sumWithdraw;
+      container.innerHTML = `
+        <table id="accountTable">
+          <tr>
+            <th>الكمية</th>
+            <th>القيمة</th>
+            <th>السحب</th>
+            <th>الإجمالي</th>
+            <th>التاريخ</th>
+            <th>التفاصيل</th>
+            <th>الإجراءات</th>
+          </tr>
+          ${rows}
+          <tr style='font-weight:bold;background:#ffd'>
+            <td colspan=3>الإجمالي الكلي:</td>
+            <td>${sumTotal}</td>
+            <td colspan=3></td>
+          </tr>
+          <tr style='font-weight:bold;background:#fdd'>
+            <td colspan=3>مجموع السحب:</td>
+            <td>${sumWithdraw}</td>
+            <td colspan=3></td>
+          </tr>
+          <tr style='font-weight:bold;background:#dfd'>
+            <td colspan=3>المتبقي:</td>
+            <td>${remaining}</td>
+            <td colspan=3></td>
+          </tr>
+        </table>
+        <br>
+        <button class="btn btn-success" onclick="saveAllChanges()">💾 حفظ جميع التغييرات</button>`;
+    }
+
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const button = document.querySelector('#viewForm .btn-warning');
+      
+      if (isEditMode) {
+        button.textContent = '👁️ وضع العرض';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-warning');
+      } else {
+        button.textContent = '✏️ وضع التعديل';
+        button.classList.add('btn-warning');
+        button.classList.remove('btn-success');
+      }
+      
+      // إعادة عرض البيانات بالوضع الجديد
+      if (currentAccountName) {
+        viewAccount();
+      }
+    }
+
+    function updateRecord(index) {
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      const records = data[currentAccountName];
+      
+      const quantity = Number(document.getElementById(`editQty${index}`).value);
+      const value = Number(document.getElementById(`editVal${index}`).value);
+      const withdraw = Number(document.getElementById(`editWithdraw${index}`).value);
+      const inform = document.getElementById(`editInform${index}`).value;
+      
+      if (isNaN(quantity) || isNaN(value) || isNaN(withdraw)) {
+        alert("يرجى إدخال قيم صحيحة");
+        return;
+      }
+      
+      records[index] = {
+        quantity,
+        value,
+        withdraw,
+        total: quantity * value,
+        date: records[index].date,
+        inform
+      };
+      
+      localStorage.setItem("accounts", JSON.stringify(data));
+      autoBackup();
+      
+      document.getElementById(`editTotal${index}`).textContent = quantity * value;
+      viewAccount();
+      renderStats();
+      
+      alert("✅ تم تحديث السجل");
+    }
+
+    function deleteRecord(index) {
+      if (!confirm("هل أنت متأكد من حذف هذا السجل؟")) return;
+      
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      const records = data[currentAccountName];
+      
+      records.splice(index, 1);
+      
+      if (records.length === 0) {
+        delete data[currentAccountName];
+      } else {
+        data[currentAccountName] = records;
+      }
+      
+      localStorage.setItem("accounts", JSON.stringify(data));
+      autoBackup();
+      
+      viewAccount();
+      renderStats();
+      
+      alert("✅ تم حذف السجل");
+    }
+
+    function saveAllChanges() {
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      const records = data[currentAccountName];
+      
+      for (let i = 0; i < records.length; i++) {
+        const quantity = Number(document.getElementById(`editQty${i}`).value);
+        const value = Number(document.getElementById(`editVal${i}`).value);
+        const withdraw = Number(document.getElementById(`editWithdraw${i}`).value);
+        const inform = document.getElementById(`editInform${i}`).value;
+        
+        if (!isNaN(quantity) && !isNaN(value) && !isNaN(withdraw)) {
+          records[i] = {
+            quantity,
+            value,
+            withdraw,
+            total: quantity * value,
+            date: records[i].date,
+            inform
+          };
+        }
+      }
+      
+      localStorage.setItem("accounts", JSON.stringify(data));
+      autoBackup();
+      alert("✅ تم حفظ جميع التغييرات");
+      viewAccount();
+      renderStats();
+    }
+
+    function deleteAccount() {
+      const name = document.getElementById('deleteName').value.trim();
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      if (!data[name]) { 
+        document.getElementById("deleteResult").innerHTML = "❌ الاسم غير موجود"; 
+        return; 
+      }
+      delete data[name]; 
+      localStorage.setItem("accounts", JSON.stringify(data));
+      autoBackup();
+      document.getElementById("deleteResult").innerHTML = "✅ تم الحذف";
+      renderStats();
+    }
+
+    function listAccounts() {
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      const names = Object.keys(data);
+      document.getElementById("accountsList").innerHTML = 
+        names.length === 0 ? 
+        "<p>لا توجد حسابات</p>" : 
+        "<ul>" + names.map(n => `<li>${n}</li>`).join('') + "</ul>";
+    }
+
+    function changePassword() {
+      const oldP = document.getElementById("oldPassword").value;
+      const newP = document.getElementById("newPassword").value;
+      const confirmP = document.getElementById("confirmPassword").value;
+      const current = localStorage.getItem("accountPassword");
+      if (oldP !== current) { 
+        document.getElementById("passwordChangeResult").innerHTML = "❌ كلمة المرور القديمة غير صحيحة"; 
+        return; 
+      }
+      if (newP !== confirmP || newP.length < 3) { 
+        document.getElementById("passwordChangeResult").innerHTML = "❌ غير صالح"; 
+        return; 
+      }
+      localStorage.setItem("accountPassword", newP);
+      document.getElementById("passwordChangeResult").innerHTML = "✅ تم تغيير كلمة المرور";
+    }
+
+    function exportToExcel() {
+      const table = document.getElementById("accountTable");
+      const name = document.getElementById("viewName").value.trim();
+      if (!table) return alert("❌ لا يوجد جدول");
+      
+      const tempTable = table.cloneNode(true);
+      const actionCells = tempTable.querySelectorAll('td:last-child');
+      actionCells.forEach(cell => {
+        if (cell.querySelector('button')) {
+          cell.remove();
+        }
+      });
+      
+      let html = `<html><head><meta charset='utf-8'></head><body><h3>الحساب: ${name}</h3>${tempTable.outerHTML}</body></html>`;
+      const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); 
+      a.href = url; 
+      a.download = `${name}.xls`; 
+      a.click();
+    }
+
+    function renderStats(){
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      let totalAccounts = Object.keys(data).length;
+      let sumTotal = 0, sumWithdraw = 0;
+      
+      const statsContainer = document.getElementById("statsContainer"); 
+      statsContainer.innerHTML = "";
+      
+      let labels = [], totals = [], withdraws = [];
+      
+      for(const name in data){
+        let st = 0, sw = 0; 
+        data[name].forEach(r => { st += r.total; sw += r.withdraw; });
+        sumTotal += st; 
+        sumWithdraw += sw;
+        labels.push(name); 
+        totals.push(st); 
+        withdraws.push(sw);
+      }
+      
+      const stats = [
+        {title: "عدد الحسابات", value: totalAccounts},
+        {title: "مجموع الاجمالي", value: sumTotal},
+        {title: "مجموع الزحب", value: sumWithdraw},
+        {title: "إجمالي المتبقي", value: sumTotal - sumWithdraw}
+      ];
+      
+      stats.forEach(s => {
+        statsContainer.innerHTML += `<div class='stat-item'><h3>${s.value}</h3><p>${s.title}</p></div>`;
+      });
+      
+      renderChart(labels, totals, withdraws);
+    }
+
+    function renderSummaryTable() {
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      const summaryBody = document.querySelector("#summaryTable tbody"); 
+      summaryBody.innerHTML = "";
+      
+      for(const name in data){
+        let st = 0, sw = 0; 
+        data[name].forEach(r => { st += r.total; sw += r.withdraw; });
+        summaryBody.innerHTML += `<tr><td>${name}</td><td>${st}</td><td>${sw}</td><td>${st - sw}</td></tr>`;
+      }
+    }
+
+    function renderChart(labels, totals, withdraws){
+      const ctx = document.getElementById("accountsChart");
+      if(chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'الإجمالي',
+              data: totals,
+              backgroundColor: 'rgba(52,152,219,0.7)'
+            },
+            {
+              label: 'السحب',
+              data: withdraws,
+              backgroundColor: 'rgba(231,76,60,0.7)'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top'
+            }
+          }
+        }
+      });
+    }
+
+    // وظائف النسخ الاحتياطي
+    function backupData() {
+      const data = localStorage.getItem("accounts");
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup_accounts_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      alert("✅ تم إنشاء نسخة احتياطية");
+    }
+
+    function restoreData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (confirm("⚠️ هل تريد استبدال البيانات الحالية؟ سيتم فقدان البيانات غير المحفوظة.")) {
+            localStorage.setItem("accounts", JSON.stringify(data));
+            alert("✅ تم استعادة البيانات بنجاح");
+            renderStats();
+          }
+        } catch (error) {
+          alert("❌ ملف غير صالح");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportToCSV() {
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      let csv = "الاسم,الكمية,القيمة,السحب,الإجمالي,التاريخ,التفاصيل\n";
+      
+      for (const name in data) {
+        data[name].forEach(record => {
+          csv += `"${name}",${record.quantity},${record.value},${record.withdraw},${record.total},"${record.date}","${record.inform}"\n`;
+        });
+      }
+      
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv; charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `accounts_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    }
+
+    function exportToExcelAll() {
+      const data = JSON.parse(localStorage.getItem("accounts") || "{}");
+      let html = `<html><head><meta charset='utf-8'><title>جميع الحسابات</title></head><body>`;
+      html += `<h1>جميع الحسابات - ${new Date().toLocaleDateString('ar-EG')}</h1>`;
+      
+      for (const name in data) {
+        html += `<h2>الحساب: ${name}</h2>`;
+        html += `<table border="1"><tr><th>الكمية</th><th>القيمة</th><th>السحب</th><th>الإجمالي</th><th>التاريخ</th><th>التفاصيل</th></tr>`;
+        
+        data[name].forEach(record => {
+          html += `<tr><td>${record.quantity}</td><td>${record.value}</td><td>${record.withdraw}</td><td>${record.total}</td><td>${record.date}</td><td>${record.inform}</td></tr>`;
+        });
+        
+        html += `</table><br>`;
+      }
+      
+      html += `</body></html>`;
+      const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `all_accounts_${new Date().toISOString().split('T')[0]}.xls`;
+      a.click();
+    }
+
+    function autoBackup() {
+      try {
+        const data = localStorage.getItem("accounts");
+        const timestamp = new Date().toISOString();
+        localStorage.setItem(`autoBackup_${timestamp}`, data);
+        
+        // حفظ آخر 5 نسخ فقط
+        const backups = Object.keys(localStorage)
+          .filter(key => key.startsWith('autoBackup_'))
+          .sort()
+          .reverse();
+        
+        if (backups.length > 5) {
+          for (let i = 5; i < backups.length; i++) {
+            localStorage.removeItem(backups[i]);
+          }
+        }
+      } catch (error) {
+        console.log("خطأ في النسخ الاحتياطي التلقائي");
+      }
+    }
+
+    // تحميل آخر نسخة احتياطية تلقائية عند بدء التشغيل
+    window.addEventListener('load', function() {
+      const backups = Object.keys(localStorage)
+        .filter(key => key.startsWith('autoBackup_'))
+        .sort()
+        .reverse();
+      
+      if (backups.length > 0 && !localStorage.getItem("accounts")) {
+        if (confirm("تم العثور على نسخة احتياطية تلقائية. هل تريد استعادتها؟")) {
+          const backupData = localStorage.getItem(backups[0]);
+          localStorage.setItem("accounts", backupData);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
